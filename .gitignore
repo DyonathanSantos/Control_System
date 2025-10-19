@@ -1,0 +1,44 @@
+# ===== Python cache files =====
+__pycache__/
+*.py[cod]
+*$py.class
+
+# ===== Virtual environments =====
+venv/
+.env/
+.env.bak/
+.envrc
+
+# ===== Editor / IDE configs =====
+.vscode/
+.idea/
+*.swp
+
+# ===== System files =====
+.DS_Store
+Thumbs.db
+
+# ===== Logs and temp files =====
+*.log
+*.tmp
+*.bak
+
+# ===== Databases =====
+*.sqlite3
+*.db
+*.db-journal
+
+# ===== Build and distribution =====
+build/
+dist/
+*.egg-info/
+*.spec
+
+# ===== Other common ignores =====
+*.exe
+*.dll
+*.so
+*.zip
+*.tar
+*.gz
+*.7z
