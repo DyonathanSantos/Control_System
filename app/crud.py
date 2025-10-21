@@ -35,6 +35,17 @@ def register_sale(product, quantity, price):
          total = quantity * price
          cur.execute('''INSERT INTO sells (product, quantity, price, total)
                      VALUES (?,?,?,?)''',(product.upper(), quantity, price, total))
+      # update stock
+         cur.execute('SELECT quantity FROM stock WHERE product = ?',(product.upper(),))
+         stock_q = cur.fetchone()
+         if stock_q[0] < quantity:
+            raise ValueError('Not enough stock')
+         new_q = stock_q[0] - quantity 
+         if new_q <=5:
+            cur.execute('UPDATE stock SET quantity = ?',(new_q,))
+            print('Low stock <= 5 \n Registered sell')
+         else:
+            cur.execute('UPDATE stock SET quantity = ?',(new_q,)) 
          con.commit()
    except Exception as e:
         raise
@@ -71,7 +82,7 @@ def add_item_comanda(id_comanda, id_product,quantity):
       con.commit()
 
 def register_log(user,action):
-      with connect as con:
+      with connect() as con:
          cur = con.cursor()
          cur.execute('INSERT INTO logs (user,action) VALUES (?, ?)',(user,action))
          con.commit()
@@ -99,6 +110,7 @@ def see_item_comanda(id_comanda):
 #Format decimals
       df["price"] = df["price"].round(2)
       df["total"] = df["total"].round(2)
+      df['pagamento'] = sum(df['total'])
       return print(df)
    
 def see_saler():
@@ -128,10 +140,12 @@ def close_comanda(id_comanda,user):
       
       with connect() as con:
          cur = con.cursor()
-         see_item_comanda(id_comanda)
-         register_log(user, f'Close the comanda {id_comanda} with total {total:.2f}')  
-         con.commit()
-      
+         cur.execute('SELECT')
+
+
+         cur.execute('SELECT SUM(price * quantity) FROM item_comanda WHERE id = ?',(id_comanda,))
+         total = cur.fetchone()
+         return register_log(user, f'Close the comanda {id_comanda} with total {total}')
 
 
  #DELETE 
