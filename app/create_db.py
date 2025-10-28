@@ -1,7 +1,7 @@
 import sqlite3
 
 def connect():
-    return sqlite3.connect('base.db')
+    return sqlite3.connect('C:/Users/Dyona/OneDrive/Documentos/System_bar_refactor/data/base.db')
 
 con = connect() # open connection
 cur = con.cursor()

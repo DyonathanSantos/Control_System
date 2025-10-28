@@ -35,6 +35,17 @@ def register_sale(product, quantity, price):
          total = quantity * price
          cur.execute('''INSERT INTO sells (product, quantity, price, total)
                      VALUES (?,?,?,?)''',(product.upper(), quantity, price, total))
+      # update stock
+         cur.execute('SELECT quantity FROM stock WHERE product = ?',(product.upper(),))
+         stock_q = cur.fetchone()
+         if stock_q[0] < quantity:
+            raise ValueError('Not enough stock')
+         new_q = stock_q[0] - quantity 
+         if new_q <=5:
+            cur.execute('UPDATE stock SET quantity = ?',(new_q,))
+            print('Low stock <= 5 \n Registered sell')
+         else:
+            cur.execute('UPDATE stock SET quantity = ?',(new_q,)) 
          con.commit()
    except Exception as e:
         raise
@@ -61,17 +72,17 @@ def add_item_comanda(id_comanda, id_product,quantity):
 
       if item:
          new_q = item[1] + quantity
-         cur.execute('UPDATE item_comanda SET quantity = ? WHERE id = ?'(new_q, item[0]))
+         cur.execute('UPDATE item_comanda SET quantity = ? WHERE id = ?',(new_q, item[0],))
       else:
          cur.execute('''INSERT INTO item_comanda (id_comanda, id_product, product, quantity, price)
                      VALUES (?, ?, ?, ?, ?)''',(id_comanda, id_product, row[0], quantity, price))
       #update stock
-
-      cur.execute('UPDATE stock SET quantity = ? WHERE id = ?',(quantity, id_product))
+      new_quantity_stock = row[1] - quantity
+      cur.execute('UPDATE stock SET quantity = ? WHERE id = ?',(new_quantity_stock, id_product))
       con.commit()
 
 def register_log(user,action):
-      with connect as con:
+      with connect() as con:
          cur = con.cursor()
          cur.execute('INSERT INTO logs (user,action) VALUES (?, ?)',(user,action))
          con.commit()
@@ -91,6 +102,13 @@ def see_comanda():
       df = pd.read_sql_query('SELECT * FROM comanda WHERE status = "open"',con)
    return print(df)
 
+def see_close_comanda():
+   with connect() as con:
+      cur = con.cursor()
+      df = pd.read_sql_query('SELECT * FROM comanda WHERE status = "close"',con)
+   return print(df)
+
+
 def see_item_comanda(id_comanda):
    with connect() as con:
       cur = con.cursor()
@@ -99,6 +117,7 @@ def see_item_comanda(id_comanda):
 #Format decimals
       df["price"] = df["price"].round(2)
       df["total"] = df["total"].round(2)
+      df['pagamento'] = sum(df['total'])
       return print(df)
    
 def see_saler():
@@ -121,26 +140,37 @@ def update_stock(id_product, quantity):
          cur.execute('SELECT id, quantity FROM stock WHERE id = ?',(id_product,))
          item = cur.fetchone() 
          new_q = item[1] + quantity
-         cur.execute('UPDATE stock SET quantity = ? WHERE id = ?',(new_q, item[0]))
+         cur.execute('UPDATE stock SET quantity = ? WHERE id = ?',(new_q, item[0],))
          con.commit()
 
 def close_comanda(id_comanda,user):
-      
-      with connect() as con:
-         cur = con.cursor()
-         see_item_comanda(id_comanda)
-         register_log(user, f'Close the comanda {id_comanda} with total {total:.2f}')  
-         con.commit()
-      
-
-
+      try:
+         with connect() as con:
+            cur = con.cursor()
+   #Change status
+            cur.execute('UPDATE comanda SET status ="close" WHERE id = ?',(id_comanda,)) 
+            con.commit()
+   #Register log and sum total
+            cur.execute('SELECT SUM(price * quantity) FROM item_comanda WHERE id_comanda = ?',(id_comanda,))
+            total = cur.fetchone()[0] or 0
+            return register_log(user, f'Close the comanda {id_comanda} with total {total}')
+      except Exception as e:
+         print("❌ Error closing comanda:", e)
  #DELETE 
 
 def delete_comanda(id_comanda):
    with connect() as con:
-      cur = con.cursor('DELETE FROM comanda WHERE id = ?',(id_comanda,))
+      cur = con.cursor()
+      cur.execute('DELETE FROM comanda WHERE id = ?',(id_comanda,))
       con.commit()
-      
+
+
+def delete_stock(id_product):
+   with connect() as con:
+      cur = con.cursor()
+      cur.execute('DELETE FROM stock WHERE id = ?',(id_product,))
+      con.commit()
+
 
 
 
