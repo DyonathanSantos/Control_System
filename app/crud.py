@@ -92,32 +92,37 @@ def register_log(user, action):
          con.commit()
 
 def register_user(username, password, role='user'):
-   hashed = hash_password(password)
-   with connect() as con:
-      cur = con.cursor()
-      cur.execute('''INSERT INTO users (username, password_hash, role)
-                   VALUES (?, ?, ?)''',(username, hashed, role))
-      con.commit()
+   try:
+      hashed = hash_password(password)
+      with connect() as con:
+         cur = con.cursor()
+         cur.execute('''INSERT INTO users (username, password_hash, role)
+                     VALUES (?, ?, ?)''',(username, hashed, role,))
+         con.commit()
+         return True
+   except sqlite3.IntegrityError as e:
+      raise ValueError ('User already registered')
+      
 
-# READ -------------------- (late remove the print function)
+# READ --------------------
 
 def see_stock():
    with connect() as con:
       cur = con.cursor()
       df = pd.read_sql_query('SELECT * FROM stock',con)
-   return print(df)
+   return df
 
 def see_comanda():
    with connect() as con:
       cur = con.cursor()
       df = pd.read_sql_query('SELECT * FROM comanda WHERE status = "open"',con)
-   return print(df)
+   return df
 
 def see_close_comanda():
    with connect() as con:
       cur = con.cursor()
       df = pd.read_sql_query('SELECT * FROM comanda WHERE status = "close"',con)
-   return print(df)
+   return df
 
 
 def see_item_comanda(id_comanda):
@@ -129,19 +134,19 @@ def see_item_comanda(id_comanda):
       df["price"] = df["price"].round(2)
       df["total"] = df["total"].round(2)
       df['pagamento'] = sum(df['total'])
-      return print(df)
+      return df
    
 def see_saler():
    with connect() as con:
       cur = con.cursor()
       df = pd.read_sql_query('SELECT * FROM sells',con)
-      return print(df)
+      return df
    
 def see_logs():
    with connect()as con:
       cur = con.cursor()
       df = pd.read_sql_query('SELECT * FROM logs',con)
-      return print(df)
+      return df
 
 #UPDATE
 
@@ -164,7 +169,8 @@ def close_comanda(id_comanda, user):
    #Register log and sum total
             cur.execute('SELECT SUM(price * quantity) FROM item_comanda WHERE id_comanda = ?',(id_comanda,))
             total = cur.fetchone()[0] or 0
-            return register_log(user, f'Close the comanda {id_comanda} with total {total}')
+            register_log(user, f'Close the comanda {id_comanda} with total {total}')
+            return total
       except Exception as e:
          print("❌ Error closing comanda:", e)
 
@@ -174,7 +180,7 @@ def login_user(username, password):
    with connect() as con:
       cur = con.cursor()
       cur.execute('SELECT * FROM users WHERE username = ? AND password_hash = ?',(username, hashed))
-      return print(cur.fetchone())
+      return cur.fetchone()
       
  #DELETE 
 
