@@ -1,9 +1,13 @@
 from create_db import connect
 import sqlite3
 import pandas as pd
+import hashlib
 
 
 #Create
+
+def hash_password(password):
+   return hashlib.sha256(password.encode()).hexdigest()
 
 def add_product_stock(product, quantity, category, buy, sell):
     
@@ -50,7 +54,7 @@ def register_sale(product, quantity, price):
    except Exception as e:
         raise
 
-def add_item_comanda(id_comanda, id_product,quantity):
+def add_item_comanda(id_comanda, id_product, quantity):
    with connect() as con:
       #fetch price and stock
       cur = con.cursor()
@@ -81,12 +85,19 @@ def add_item_comanda(id_comanda, id_product,quantity):
       cur.execute('UPDATE stock SET quantity = ? WHERE id = ?',(new_quantity_stock, id_product))
       con.commit()
 
-def register_log(user,action):
+def register_log(user, action):
       with connect() as con:
          cur = con.cursor()
          cur.execute('INSERT INTO logs (user,action) VALUES (?, ?)',(user,action))
          con.commit()
 
+def register_user(username, password, role='user'):
+   hashed = hash_password(password)
+   with connect() as con:
+      cur = con.cursor()
+      cur.execute('''INSERT INTO users (username, password_hash, role)
+                   VALUES (?, ?, ?)''',(username, hashed, role))
+      con.commit()
 
 # READ -------------------- (late remove the print function)
 
@@ -143,7 +154,7 @@ def update_stock(id_product, quantity):
          cur.execute('UPDATE stock SET quantity = ? WHERE id = ?',(new_q, item[0],))
          con.commit()
 
-def close_comanda(id_comanda,user):
+def close_comanda(id_comanda, user):
       try:
          with connect() as con:
             cur = con.cursor()
@@ -156,6 +167,15 @@ def close_comanda(id_comanda,user):
             return register_log(user, f'Close the comanda {id_comanda} with total {total}')
       except Exception as e:
          print("❌ Error closing comanda:", e)
+
+
+def login_user(username, password):
+   hashed = hash_password(password)
+   with connect() as con:
+      cur = con.cursor()
+      cur.execute('SELECT * FROM users WHERE username = ? AND password_hash = ?',(username, hashed))
+      return print(cur.fetchone())
+      
  #DELETE 
 
 def delete_comanda(id_comanda):
