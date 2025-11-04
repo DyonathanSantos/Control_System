@@ -75,18 +75,46 @@ elif menu == "📦 Stock":
     else:
         st.title("📦 Product Stock")
 
+        if "selected_action" not in st.session_state:
+            st.session_state.selected_action = None
+
         col1, col2 = st.columns(2)
         with col1:
-            st.write("### ➕ Add Product")
-            name = st.text_input("Product Name")
-            category = st.selectbox("Category", ["Bebida Alcoólica", "Bebida Não Alcoólica", "Comida", "Outros"])
-            quantity = st.number_input("Quantity", min_value=0)
-            cost = st.number_input("Cost Price (R$)", min_value=0.0)
-            price = st.number_input("Sale Price (R$)", min_value=0.0)
+            action = st.selectbox("Action", ["New Product","Update Stock"])
 
-            if st.button("Add Product"):
-                add_product_stock(name,quantity, category, cost, price)
-                st.success(f"✅ Product '{name}' added successfully!")
+            if st.button("Select"):
+                st.session_state.selected_action = action  # store user choice
+            
+            if st.session_state.selected_action == "New Product":
+                st.write("### ➕ Add Product")
+                name = st.text_input("Product Name")
+                category = st.selectbox("Category", ["Bebida Alcoólica", "Bebida Não Alcoólica", "Comida", "Outros"])
+                quantity = st.number_input("Quantity", min_value=0)
+                cost = st.number_input("Cost Price (R$)", min_value=0.0)
+                price = st.number_input("Sale Price (R$)", min_value=0.0)
+
+                if st.button("Add Product"):
+                    add_product_stock(name,quantity, category, cost, price)
+                    st.success(f"✅ Product '{name}' added successfully!")
+            
+            if st.session_state.selected_action == "Update Stock":
+
+                product = see_stock()
+                if product is not None and not product.empty:
+
+                    product_dict = {f"{row['product']} (ID {row['id']})": row['id'] for _, row in product.iterrows()}
+                    name_product = st.selectbox("Select Product", list(product_dict.keys()))
+                    id_product = product_dict[name_product]
+                    quantity = st.number_input("Quantity", min_value= 1)
+
+                if st.button("Confirm Update"):
+                    try:
+                        update_stock(id_product, quantity)
+                        st.success(f"✅ {quantity}x {name_product} adicionados ao estoque")
+                    except Exception as e:
+                        st.error(f"❌ Erro ao adicionar item: {e}")
+                else:
+                    st.info('Adicione o produto caso não ache na seleção')
 
         with col2:
             st.write("### 📋 Current Stock")
@@ -128,9 +156,60 @@ elif menu == "🧾 Comandas":
                 else:
                     st.info('Waiting for customer name...')
         
-        elif st.session_state.selected_action = "Add item in comanda":
-            comanda_id = 
-                
+        elif st.session_state.selected_action == "Add item in comanda":
+            # Pegar todas as comandas abertas
+            comanda = see_comanda()
+
+            #Create a dictionary {name: id}
+            if comanda is not None and not comanda.empty:
+                comanda_dict = {f"{row['customer']} (ID {row['id']})": row['id'] for _, row in comanda.iterrows()}
+                comanda_name = st.selectbox("Selecione a comanda",list(comanda_dict.keys()))
+                id_comanda = comanda_dict[comanda_name]
+            else:
+                st.warning("⚠️ Nenhuma comanda aberta no momento.")
+                st.stop()
+
+            #Get products
+            products = see_stock()
+
+            # Create a dictionary
+            if products is not None and not products.empty:
+                product_dict = {f"{row['product']} (ID {row['id']})": row['id'] for _, row in products.iterrows()}
+                name_product = st.selectbox('Select the product', list(product_dict.keys()))
+                id_product = product_dict[name_product]
+                quantity = st.number_input("Quantidade", min_value=1)
+
+            if st.button("Confirmar Adição"):
+                    try:
+                        add_item_comanda(id_comanda, id_product, quantity)
+                        st.success(f"✅ {quantity}x {name_product} adicionados à comanda {id_comanda}")
+                    except Exception as e:
+                        st.error(f"❌ Erro ao adicionar item: {e}")
+            else:
+                st.warning("⚠️ Nenhum produto disponível no estoque.")
+
+
+        elif st.session_state.selected_action == "View Items":
+            comanda = see_comanda()
+
+            if comanda is not None and not comanda.empty:
+                comanda_dict = {f"{row['customer']} (ID {row['id']})": row['id'] for _, row in comanda.iterrows()}
+                comanda_name = st.selectbox("Selecione a comanda",list(comanda_dict.keys()))
+                id_comanda = comanda_dict[comanda_name]
+            else:
+                st.warning("⚠️ Nenhuma comanda aberta no momento.")
+                st.stop()
+
+            if st.button(" View Item"):
+                try:
+                    df = see_item_comanda(id_comanda)
+                    if df is not None and not df.empty:
+                        st.dataframe(df)
+                        st.metric("Total", f"R$ {df['total'].sum():.2f}")
+                except Exception as e:
+                        st.error(f"❌ Erro ao adicionar item: {e}")
+
+
 
     with col2:
         st.write('### 🧾 Current Comandas')
