@@ -97,7 +97,7 @@ def register_user(username, password, role='user'):
       with connect() as con:
          cur = con.cursor()
          cur.execute('''INSERT INTO users (username, password_hash, role)
-                     VALUES (?, ?, ?)''',(username, hashed, role,))
+                     VALUES (?, ?, ?)''',(username, hashed, role.lower(),))
          con.commit()
          return True
    except sqlite3.IntegrityError as e:
@@ -143,10 +143,16 @@ def see_saler():
       return df
    
 def see_logs():
-   with connect()as con:
+   with connect() as con:
       cur = con.cursor()
       df = pd.read_sql_query('SELECT * FROM logs',con)
       return df
+def see_user():
+   with connect() as con:
+      cur = con.cursor()
+      df = pd.read_sql_query("SELECT id, username, role FROM users",con)
+      return df
+
 
 #UPDATE
 
@@ -164,13 +170,22 @@ def close_comanda(id_comanda, user):
          with connect() as con:
             cur = con.cursor()
    #Change status
-            cur.execute('UPDATE comanda SET status ="close" WHERE id = ?',(id_comanda,)) 
-            con.commit()
+            #cur.execute('UPDATE comanda SET status ="close" WHERE id = ?',(id_comanda,)) 
+            #con.commit()
+   #Register Sale
+            cur.execute("SELECT product, quantity, price FROM item_comanda WHERE id_comanda = ?",(id_comanda,))
+            register = cur.fetchone()
+            product = register[0]
+            quantity = register [1]
+            price = register[2]
+
+
+
    #Register log and sum total
-            cur.execute('SELECT SUM(price * quantity) FROM item_comanda WHERE id_comanda = ?',(id_comanda,))
-            total = cur.fetchone()[0] or 0
-            register_log(user, f'Close the comanda {id_comanda} with total {total}')
-            return total
+            #cur.execute('SELECT SUM(price * quantity) FROM item_comanda WHERE id_comanda = ?',(id_comanda,))
+            #total = cur.fetchone()[0] or 0
+            #register_log(user, f'Close the comanda {id_comanda} with total {total}')
+            return print(product,quantity, price)
       except Exception as e:
          print("❌ Error closing comanda:", e)
 
@@ -197,6 +212,11 @@ def delete_stock(id_product):
       cur.execute('DELETE FROM stock WHERE id = ?',(id_product,))
       con.commit()
 
+def delete_user(id_user):
+   with connect() as con:
+      cur = con.cursor()
+      cur.execute("DELETE FROM users WHERE id = ?",(id_user,))
+      con.commit()
 
 
 

@@ -7,4 +7,5 @@ import pandas as pd
 
 
 
-login_user('admin','root')
+close_comanda(5,'admin')
+see_saler()
