@@ -2,6 +2,9 @@ from create_db import connect
 import sqlite3
 import pandas as pd
 import hashlib
+import matplotlib.pyplot as plt
+import os, shutil, datetime
+import streamlit as st
 
 
 #Create
@@ -170,22 +173,19 @@ def close_comanda(id_comanda, user):
          with connect() as con:
             cur = con.cursor()
    #Change status
-            #cur.execute('UPDATE comanda SET status ="close" WHERE id = ?',(id_comanda,)) 
-            #con.commit()
+            cur.execute('UPDATE comanda SET status ="close" WHERE id = ?',(id_comanda,)) 
+            con.commit()
+
    #Register Sale
             cur.execute("SELECT product, quantity, price FROM item_comanda WHERE id_comanda = ?",(id_comanda,))
-            register = cur.fetchone()
-            product = register[0]
-            quantity = register [1]
-            price = register[2]
-
-
+            sales = cur.fetchall()
+            for product, quantity, price in sales:
+               register_sale(product, quantity, price)
 
    #Register log and sum total
-            #cur.execute('SELECT SUM(price * quantity) FROM item_comanda WHERE id_comanda = ?',(id_comanda,))
-            #total = cur.fetchone()[0] or 0
-            #register_log(user, f'Close the comanda {id_comanda} with total {total}')
-            return print(product,quantity, price)
+            cur.execute('SELECT SUM(price * quantity) FROM item_comanda WHERE id_comanda = ?',(id_comanda,))
+            total = cur.fetchone()[0] or 0
+            return register_log(user, f'Close the comanda {id_comanda} with total {total}')
       except Exception as e:
          print("❌ Error closing comanda:", e)
 
@@ -220,3 +220,46 @@ def delete_user(id_user):
 
 
 
+
+# Function for Streamlit
+
+def auto_backup(db_path="base_bar.db"):
+    """Cria automaticamente um backup diário se ainda não existir."""
+    if not os.path.exists(db_path):
+        st.warning("⚠️ Banco de dados não encontrado para backup automático.")
+        return None
+
+    # Nome do backup do dia
+    today = datetime.datetime.now().strftime("%Y%m%d")
+    backup_name = f"auto_backup_base_bar_{today}.db"
+
+    # Só cria se ainda não existir backup de hoje
+    if not os.path.exists(backup_name):
+        shutil.copy(db_path, backup_name)
+        st.success(f"✅ Backup automático criado: {backup_name}")
+        return backup_name
+    else:
+        st.info(f"🕒 Backup de hoje já existe: {backup_name}")
+        return None
+
+# Executa o backup automático ao carregar a página
+auto_backup()
+
+def get_db_info(db_path="base_bar.db"):
+        if os.path.exists(db_path):
+            size = os.path.getsize(db_path) / 1024  # KB
+            mod_time = datetime.datetime.fromtimestamp(os.path.getmtime(db_path))
+            return {
+                "path": db_path,
+                "size_kb": size,
+                "last_modified": mod_time.strftime("%d/%m/%Y %H:%M:%S")
+            }
+        else:
+            return None
+
+def backup_database(src="base_bar.db"):
+        if os.path.exists(src):
+            backup_name = f"backup_base_bar_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.db"
+            shutil.copy(src, backup_name)
+            return backup_name
+        return None

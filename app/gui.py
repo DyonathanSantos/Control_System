@@ -1,7 +1,8 @@
 import streamlit as st
 import pandas as pd
 from crud import *
-
+import matplotlib.pyplot as plt
+import os, shutil, datetime
 
 st.set_page_config(page_title="Bar & Adega System", page_icon="🍻", layout="wide")
 
@@ -48,7 +49,7 @@ st.sidebar.title("🍺 Bar & Adega Control")
 st.sidebar.write(f"👤 Logged as: **{st.session_state['user']} ({st.session_state['role']})**")
 menu = st.sidebar.radio(
     "Choose an option:",
-    ["🏠 Home", "🧾 Comandas", "📦 Stock", "👤 Users", "📊 Reports", "🚪 Logout"]
+    ["🏠 Home", "🧾 Comandas", "📦 Stock", "👤 Users", "📊 Reports","⚙️ Configuration","🚪 Logout"]
 )
 
 # -------------------------
@@ -161,10 +162,20 @@ elif menu == "🧾 Comandas":
             st.session_state.selected_action = action  # store user choice
 
         if st.session_state.selected_action == "Close Comanda":
-                comanda_id = st.number_input('ID Comanda', min_value = 0)
+                comanda = see_comanda()
+
+                if comanda is not None and not comanda.empty:
+                    comanda_dict = {f"{row['customer']}(ID {row['id']})": row['id'] for _, row in comanda.iterrows()}
+                    comanda_name = st.selectbox("Select Customer", list(comanda_dict.keys()))
+                    comanda_id = comanda_dict[comanda_name]
+
                 if st.button('Confirm'):
-                    total = close_comanda(comanda_id, st.session_state["user"])
-                    st.success(f"✅ Comanda {comanda_id} closed! Total: R$ {total}")
+                    with connect() as con:
+                        cur = con.cursor()
+                        cur.execute("SELECT SUM(quantity * price) FROM item_comanda WHERE id_comanda = ?",(comanda_id,))
+                        total = cur.fetchone() [0] or 0
+                        close_comanda(comanda_id, st.session_state["user"])
+                        st.success(f"✅ Comanda {comanda_id} closed! Total: R$ {total:.2f}")
 
         elif st.session_state.selected_action == "Create Comanda":
                 name = st.text_input('Customer Name')
@@ -256,7 +267,7 @@ elif menu == "👤 Users":
 
     with col1:
         st.write("### Register User")
-        action = st.selectbox("Action", ["Register User", "Delete User"])
+        action = st.selectbox("Action", ["Register User", "Delete User","Logs"])
 
         if st.button("Select"):
             st.session_state.selected_action = action
@@ -288,6 +299,13 @@ elif menu == "👤 Users":
                         st.success(f'User {user_name} delete!')
                     except Exception as e:
                         st.error(f"Error for Delete the User {e}")
+        
+        elif st.session_state.selected_action == "Logs":
+            st.write('Registers of Logs')
+            df = see_logs()
+
+            if df is not None and not df.empty:
+                st.dataframe(df)
 
 #Colunm 2 with list of Users
     with col2:
@@ -307,17 +325,126 @@ elif menu == "📊 Reports":
     if st.session_state["role"] != "admin":
         st.warning("⚠️ Only admins can manage users.")
     else:
-        st.title("📊 Reports/Logs")
-        col1,col2 = st.columns(2)
-        
-    # Remember user selection
-    if "selected_action" not in st.session_state:
-        st.session_state.selected_action = None
+        st.title("📈 Reports Dashboard")
+        #Set DF for working
+        stock = see_stock()
+        sale = see_saler()
 
-    with col1:
-        st.write('### 💰 Sales')
+## ===============================
+# 📊 REPORTS MENU
+# =============================== 
 
-        df = see_saler()
+        # Create options for the user
+        option = st.sidebar.selectbox(
+            "Select Report",
+            [
+                "Total Sales per Product",
+                "Total Stock (Quantity and Value)"
+            ]
+        )
 
-        if df is not None and not df.empty:
-            st.dataframe(df)
+        # ----------------------------
+        # 1️⃣ Total Sales per Product
+        # ----------------------------
+        if option == "Total Sales per Product":
+            st.subheader("💵 Total Sales per Product")
+
+            df_grouped = sale.groupby("product", as_index=False)["total"].sum()
+
+            fig, ax = plt.subplots()
+            ax.bar(df_grouped["product"], df_grouped["total"], color="skyblue")
+            ax.set_title("Total Sales per Product")
+            ax.set_xlabel("Product")
+            ax.set_ylabel("Total Value (R$)")
+            plt.xticks(rotation=45, ha="right")
+
+            st.pyplot(fig)
+            st.dataframe(df_grouped)
+
+        # ----------------------------
+        # 2️⃣ Total Stock and Value
+        # ----------------------------
+        elif option == "Total Stock (Quantity and Value)":
+            st.subheader("📦 Total Stock")
+
+            total_items = stock["quantity"].sum()
+            total_value = (stock["quantity"] * stock["sell"]).sum()
+
+            st.metric("Total Quantity of Items", f"{total_items}")
+            st.metric("Total Value of Stock (R$)", f"{total_value:,.2f}")
+
+            fig, ax = plt.subplots()
+            ax.bar(stock["product"], stock["quantity"], color="orange")
+            ax.set_title("Stock Quantity by Product")
+            ax.set_xlabel("Product")
+            ax.set_ylabel("Quantity")
+            plt.xticks(rotation=45, ha="right")
+
+            st.pyplot(fig)
+            st.dataframe(stock)
+
+
+
+elif menu == "⚙️ Configuration":
+    st.title("⚙️ Configurações do Sistema")
+
+    # -------------------------------
+    # 📤 Upload do banco de dados
+    # -------------------------------
+    st.subheader("📤 Restaurar Banco de Dados (Upload)")
+
+    auto_backup()
+    uploaded_db = st.file_uploader("Selecione o arquivo `.db` para restaurar", type=["db"])
+
+    if uploaded_db is not None:
+        with open("base_bar.db", "wb") as f:
+            f.write(uploaded_db.read())
+        st.success("✅ Banco de dados atualizado com sucesso!")
+        st.info("Recarregue a página para aplicar as mudanças.")
+
+    # -------------------------------
+    # 💾 Download do banco de dados
+    # -------------------------------
+    st.subheader("💾 Backup do Banco de Dados Atual")
+
+    if os.path.exists("base_bar.db"):
+        with open("base_bar.db", "rb") as f:
+            st.download_button(
+                label="⬇️ Baixar banco de dados (backup)",
+                data=f,
+                file_name=f"base_bar_backup_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.db",
+                mime="application/octet-stream"
+            )
+    else:
+        st.warning("⚠️ Nenhum banco de dados encontrado para backup.")
+
+    # -------------------------------
+    # 📊 Informações do Sistema
+    # -------------------------------
+    st.subheader("📊 Informações do Sistema")
+
+    db_info = get_db_info()
+    col1, col2 = st.columns(2)
+
+    if db_info:
+        with col1:
+            st.write("**📁 Caminho:**", db_info["path"])
+            st.write(f"**📏 Tamanho:** {db_info['size_kb']:.2f} KB")
+        with col2:
+            st.write("**🕒 Última modificação:**", db_info["last_modified"])
+    else:
+        st.warning("⚠️ Nenhum banco de dados encontrado.")
+
+        # -------------------------------
+        # 👤 Sessão do Usuário
+        # -------------------------------
+        st.divider()
+        st.subheader("👤 Sessão Atual")
+
+        user = st.session_state.get("user", "Usuário não logado")
+        role = st.session_state.get("role", "N/A")
+        st.write(f"**Usuário:** {user}")
+        st.write(f"**Permissão:** {role}")
+        st.write(f"**Data Atual:** {datetime.datetime.now().strftime('%d/%m/%Y %H:%M:%S')}")
+
+        st.info("💡 Dica: Faça o download do banco de dados antes de fechar o site.")
