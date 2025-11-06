@@ -173,8 +173,8 @@ def close_comanda(id_comanda, user):
          with connect() as con:
             cur = con.cursor()
    #Change status
-            cur.execute('UPDATE comanda SET status ="close" WHERE id = ?',(id_comanda,)) 
-            con.commit()
+            #cur.execute('UPDATE comanda SET status ="close" WHERE id = ?',(id_comanda,)) 
+            #con.commit()
 
    #Register Sale
             cur.execute("SELECT product, quantity, price FROM item_comanda WHERE id_comanda = ?",(id_comanda,))
