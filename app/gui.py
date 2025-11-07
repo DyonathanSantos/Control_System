@@ -49,7 +49,7 @@ st.sidebar.title("🍺 Bar & Adega Control")
 st.sidebar.write(f"👤 Logged as: **{st.session_state['user']} ({st.session_state['role']})**")
 menu = st.sidebar.radio(
     "Choose an option:",
-    ["🏠 Home","Sale", "🧾 Comandas", "📦 Stock", "👤 Users", "📊 Reports","⚙️ Configuration","🚪 Logout"]
+    ["🏠 Home","💸 Sale", "🧾 Comandas", "📦 Stock", "👤 Users", "📊 Reports","⚙️ Configuration","🚪 Logout"]
 )
 
 # -------------------------
@@ -144,12 +144,28 @@ elif menu == "📦 Stock":
                 st.info("No products registered yet.")
 
 #Register Sale
-elif menu == "🧾 Sale":
-    st.title("🧾 Individual sales")
+elif menu == "💸 Sale":
+    st.title("💸 Individual sales")
     
-    product = see_stock()
+    products = see_stock()
+    try:
+        if products is not None and not products.empty:
 
-    if product is not None and not product.empty:
+            product_dict = {f"{row['product']} (ID{row['id']})": (row['product'], row['sell']) for _, row in products.iterrows()}
+            product_name = st.selectbox("Select product for sell", list(product_dict.keys()))
+            product, price = product_dict[product_name]
+
+            quantity = st.number_input('Quantity', min_value= 1)
+            total = price * quantity
+            st.write(f"#### 💳 **Total a pagar:** R$ {total:.2f}")
+
+            if st.button("Confirm"):
+                usuario = st.session_state.get("user")
+                register_sale(product, quantity, price)
+                register_log(usuario, f"Register individual sale, total {total:.2f}")
+                st.success(f"✅ Venda registrada com sucesso! Total: R$ {total:.2f}")
+    except Exception as e:
+        st.error(f'Error for register sale {e}')    
 
         
 
@@ -282,8 +298,8 @@ elif menu == "👤 Users":
 
 
     with col1:
-        st.write("### Register User")
-        action = st.selectbox("Action", ["Register User", "Delete User","Logs"])
+        st.write("### User register")
+        action = st.selectbox("Action", ["User register", "Delete User","Logs"])
 
         if st.button("Select"):
             st.session_state.selected_action = action
