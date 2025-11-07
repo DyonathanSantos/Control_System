@@ -39,21 +39,39 @@ def register_sale(product, quantity, price):
    try:
       with connect() as con:
          cur = con.cursor()
-         total = quantity * price
-         cur.execute('''INSERT INTO sells (product, quantity, price, total)
-                     VALUES (?,?,?,?)''',(product.upper(), quantity, price, total))
       # update stock
-         cur.execute('SELECT quantity FROM stock WHERE product = ?',(product.upper(),))
+         cur.execute('SELECT id, quantity FROM stock WHERE product = ?',(product.upper(),))
          stock_q = cur.fetchone()
-         if stock_q[0] < quantity:
+         if stock_q[1] < quantity:
             raise ValueError('Not enough stock')
-         new_q = stock_q[0] - quantity 
-         if new_q <=5:
-            cur.execute('UPDATE stock SET quantity = ?',(new_q,))
-            print('Low stock <= 5 \n Registered sell')
          else:
-            cur.execute('UPDATE stock SET quantity = ?',(new_q,)) 
-         con.commit()
+            total = quantity * price
+            cur.execute('''INSERT INTO sells (product, quantity, price, total)
+                     VALUES (?,?,?,?)''',(product.upper(), quantity, price, total))
+            new_q = stock_q[1] - quantity 
+            if new_q <=5:
+               cur.execute('UPDATE stock SET quantity = ? WHERE id = ?',(new_q, stock_q[0]))
+               print('Low stock <= 5 \n Registered sell')
+            else:
+               cur.execute('UPDATE stock SET quantity = ? WHERE id = ?',(new_q, stock_q[0])) 
+            con.commit()
+   except Exception as e:
+        raise
+   
+def register_sale_of_comanda(product, quantity, price):
+   try:
+      with connect() as con:
+         cur = con.cursor()
+      #  update stock
+         cur.execute('SELECT id, quantity FROM stock WHERE product = ?',(product.upper(),))
+         stock_q = cur.fetchone()
+         if stock_q[1] < quantity:
+            raise ValueError('Not enough stock')
+         else:
+            total = quantity * price
+            cur.execute('''INSERT INTO sells (product, quantity, price, total)
+                     VALUES (?,?,?,?)''',(product.upper(), quantity, price, total))
+            con.commit()
    except Exception as e:
         raise
 
@@ -173,14 +191,14 @@ def close_comanda(id_comanda, user):
          with connect() as con:
             cur = con.cursor()
    #Change status
-            #cur.execute('UPDATE comanda SET status ="close" WHERE id = ?',(id_comanda,)) 
-            #con.commit()
+            cur.execute('UPDATE comanda SET status ="close" WHERE id = ?',(id_comanda,)) 
+            con.commit()
 
    #Register Sale
             cur.execute("SELECT product, quantity, price FROM item_comanda WHERE id_comanda = ?",(id_comanda,))
             sales = cur.fetchall()
             for product, quantity, price in sales:
-               register_sale(product, quantity, price)
+               register_sale_of_comanda(product, quantity, price)
 
    #Register log and sum total
             cur.execute('SELECT SUM(price * quantity) FROM item_comanda WHERE id_comanda = ?',(id_comanda,))

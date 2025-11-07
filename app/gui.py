@@ -49,7 +49,7 @@ st.sidebar.title("🍺 Bar & Adega Control")
 st.sidebar.write(f"👤 Logged as: **{st.session_state['user']} ({st.session_state['role']})**")
 menu = st.sidebar.radio(
     "Choose an option:",
-    ["🏠 Home", "🧾 Comandas", "📦 Stock", "👤 Users", "📊 Reports","⚙️ Configuration","🚪 Logout"]
+    ["🏠 Home","Sale", "🧾 Comandas", "📦 Stock", "👤 Users", "📊 Reports","⚙️ Configuration","🚪 Logout"]
 )
 
 # -------------------------
@@ -142,6 +142,22 @@ elif menu == "📦 Stock":
                 st.dataframe(df)
             else:
                 st.info("No products registered yet.")
+
+#Register Sale
+elif menu == "🧾 Sale":
+    st.title("🧾 Individual sales")
+    
+    product = see_stock()
+
+    if product is not None and not product.empty:
+
+        
+
+
+
+
+
+
 
 # -------------------------
 # COMANDAS (All Users)
