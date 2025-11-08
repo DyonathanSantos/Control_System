@@ -1,7 +1,9 @@
 import sqlite3
+import os
 
 def connect():
-    return sqlite3.connect('C:/Users/Dyona/OneDrive/Documentos/System_bar_refactor/data/base.db')
+    os.makedirs("data", exist_ok=True)  # cria a pasta se não existir
+    return sqlite3.connect("data/base.db")
 
 con = connect() # open connection
 cur = con.cursor()
