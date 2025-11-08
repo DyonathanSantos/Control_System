@@ -62,9 +62,10 @@ Total stock value
 <img width="893" height="883" alt="Stock_quantity" src="https://github.com/user-attachments/assets/24d1ee78-2875-44f2-84dd-db5ef1f6990a" />
 <img width="1503" height="128" alt="Stock_quantity_table" src="https://github.com/user-attachments/assets/01368e35-e48a-4f9a-9d87-c27e0bf8791b" />
 
-🧑‍💻 Author
+## 🧑‍💻 Author
 
-Your Name
+Dyonathan Santos
+
 📧 dyonathanssantos@gmail.com
 
 💼 <a href="www.linkedin.com/in/dyonathan-santos">Linkedin</a>
