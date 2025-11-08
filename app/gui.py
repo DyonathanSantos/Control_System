@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-from crud import *
+from app.crud import *
 import matplotlib.pyplot as plt
 import os, shutil, datetime
 
