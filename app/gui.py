@@ -295,7 +295,7 @@ elif menu == "👤 Users":
         if st.button("Select"):
             st.session_state.selected_action = action
         
-        if st.session_state.selected_action == "Register User":
+        if st.session_state.selected_action == "User register":
 
             username = st.text_input("Username")
             password = st.text_input("Password", type= 'password')
