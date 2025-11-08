@@ -165,16 +165,7 @@ elif menu == "💸 Sale":
                 register_log(usuario, f"Register individual sale, total {total:.2f}")
                 st.success(f"✅ Venda registrada com sucesso! Total: R$ {total:.2f}")
     except Exception as e:
-        st.error(f'Error for register sale {e}')    
-
-        
-
-
-
-
-
-
-
+        st.error(f'Error for register sale {e}')
 # -------------------------
 # COMANDAS (All Users)
 # -------------------------
