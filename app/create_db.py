@@ -6,7 +6,9 @@ import shutil
 # -------------------------------
 # 🔌 Conexão com o banco
 # -------------------------------
-DB_PATH = "base.db"
+# Caminho do banco dentro do projeto (portátil)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_PATH = os.path.join(BASE_DIR, "base.db")
 def connect():
     return sqlite3.connect(DB_PATH, check_same_thread=False)
 
