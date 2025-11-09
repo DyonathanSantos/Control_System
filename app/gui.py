@@ -411,27 +411,29 @@ elif menu == "📊 Reports":
 elif menu == "⚙️ Configuration":
     st.title("⚙️ Configurações do Sistema")
 
-    # -------------------------------
+     # -------------------------------
     # 📤 Upload do banco de dados
     # -------------------------------
     st.subheader("📤 Restaurar Banco de Dados (Upload)")
 
-    auto_backup()
+    auto_backup()  # cria um backup automático antes de substituir
     uploaded_db = st.file_uploader("Selecione o arquivo `.db` para restaurar", type=["db"])
 
     if uploaded_db is not None:
-        with open("base_bar.db", "wb") as f:
+        with open(DB_PATH, "wb") as f:
             f.write(uploaded_db.read())
-        st.success("✅ Banco de dados atualizado com sucesso!")
-        st.info("Recarregue a página para aplicar as mudanças.")
+        st.success("✅ Banco de dados restaurado com sucesso!")
+        st.info("🔄 Recarregue a página para aplicar as alterações.")
+
+    st.divider()
 
     # -------------------------------
-    # 💾 Download do banco de dados
+    # 💾 Download do banco de dados atual
     # -------------------------------
     st.subheader("💾 Backup do Banco de Dados Atual")
 
-    if os.path.exists("base_bar.db"):
-        with open("base_bar.db", "rb") as f:
+    if os.path.exists(DB_PATH):
+        with open(DB_PATH, "rb") as f:
             st.download_button(
                 label="⬇️ Baixar banco de dados (backup)",
                 data=f,
@@ -441,15 +443,16 @@ elif menu == "⚙️ Configuration":
     else:
         st.warning("⚠️ Nenhum banco de dados encontrado para backup.")
 
+    st.divider()
+
     # -------------------------------
     # 📊 Informações do Sistema
     # -------------------------------
     st.subheader("📊 Informações do Sistema")
 
     db_info = get_db_info()
-    col1, col2 = st.columns(2)
-
     if db_info:
+        col1, col2 = st.columns(2)
         with col1:
             st.write("**📁 Caminho:**", db_info["path"])
             st.write(f"**📏 Tamanho:** {db_info['size_kb']:.2f} KB")
@@ -458,16 +461,18 @@ elif menu == "⚙️ Configuration":
     else:
         st.warning("⚠️ Nenhum banco de dados encontrado.")
 
-        # -------------------------------
-        # 👤 Sessão do Usuário
-        # -------------------------------
-        st.divider()
-        st.subheader("👤 Sessão Atual")
+    st.divider()
 
-        user = st.session_state.get("user", "Usuário não logado")
-        role = st.session_state.get("role", "N/A")
-        st.write(f"**Usuário:** {user}")
-        st.write(f"**Permissão:** {role}")
-        st.write(f"**Data Atual:** {datetime.datetime.now().strftime('%d/%m/%Y %H:%M:%S')}")
+    # -------------------------------
+    # 👤 Sessão Atual
+    # -------------------------------
+    st.subheader("👤 Sessão Atual")
 
-        st.info("💡 Dica: Faça o download do banco de dados antes de fechar o site.")
+    user = st.session_state.get("user", "Usuário não logado")
+    role = st.session_state.get("role", "N/A")
+
+    st.write(f"**Usuário:** {user}")
+    st.write(f"**Permissão:** {role}")
+    st.write(f"**Data Atual:** {datetime.datetime.now().strftime('%d/%m/%Y %H:%M:%S')}")
+
+    st.info("💡 Dica: Faça o download do banco de dados antes de fechar o site.")

@@ -1,9 +1,14 @@
 import sqlite3
 import os
+import datetime
+import shutil
 
+# -------------------------------
+# 🔌 Conexão com o banco
+# -------------------------------
+DB_PATH = "base.db"
 def connect():
-    os.makedirs("data", exist_ok=True)  # cria a pasta se não existir
-    return sqlite3.connect("data/base.db")
+    return sqlite3.connect(DB_PATH, check_same_thread=False)
 
 con = connect() # open connection
 cur = con.cursor()
